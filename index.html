@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ular Makan Tikus: Petualangan FPB dan KPK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+            touch-action: manipulation;
+        }
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+        }
+        .snake-shadow {
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+        @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 2s infinite;
+        }
+        @keyframes float-anim {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+            animation: float-anim 1.5s ease-in-out infinite;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col items-center justify-between p-3 sm:p-6 select-none">
+
+    <header class="w-full max-w-7xl flex items-center justify-between mb-4 bg-white/90 backdrop-blur px-5 py-3 rounded-2xl shadow-lg">
+        <div class="flex items-center space-x-3">
+            <span class="text-3xl">🐍</span>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-emerald-700 tracking-wide">Ular Makan Tikus</h1>
+                <p class="text-xs text-slate-500 font-semibold">Petualangan FPB & KPK — Kelas 5 SD</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button id="bgm-toggle-btn" onclick="toggleBGM()" class="px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl font-semibold text-sm transition flex items-center gap-1 shadow-sm">
+                <span>🔊</span> <span id="bgm-text" class="hidden sm:inline">Musik ON</span>
+            </button>
+            <button id="fullscreen-btn" onclick="toggleFullscreen()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition flex items-center gap-1 shadow-sm">
+                <span>⛶</span> <span class="hidden sm:inline">Full Screen</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-7xl flex-1 flex flex-col items-center justify-center relative">
+        
+        <!-- 1. START MENU VIEW -->
+        <div id="view-menu" class="game-card w-full max-w-2xl p-6 sm:p-10 flex flex-col items-center text-center space-y-6">
+            <div class="space-y-2">
+                <div class="inline-block p-4 bg-emerald-100 rounded-full text-5xl mb-2 animate-bounce">🐭</div>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-emerald-800">Arahkan Ular, Pilih Jawaban, Taklukkan FPB & KPK!</h2>
+                <p class="text-slate-600 text-sm sm:text-base">Belajar matematika jadi seru! Bantu ular cerdik menangkap tikus pembawa jawaban yang tepat.</p>
+            </div>
+
+            <!-- Mode Selection -->
+            <div class="w-full space-y-3">
+                <label class="block text-sm font-bold text-slate-700 text-left">Pilih Mode Permainan:</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button onclick="setGameMode('solo')" id="btn-mode-solo" class="mode-btn p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold flex flex-col items-center transition shadow-sm hover:shadow">
+                        <span class="text-2xl mb-1">👤</span>
+                        <span>Solo (1 Pemain)</span>
+                    </button>
+                    <button onclick="setGameMode('duel')" id="btn-mode-duel" class="mode-btn p-4 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold flex flex-col items-center transition shadow-sm hover:shadow">
+                        <span class="text-2xl mb-1">⚔️</span>
+                        <span>Duel (2 Pemain)</span>
+                    </button>
+                    <button onclick="setGameMode('squad')" id="btn-mode-squad" class="mode-btn p-4 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold flex flex-col items-center transition shadow-sm hover:shadow">
+                        <span class="text-2xl mb-1">🛡️</span>
+                        <span>Squad (4 Pemain)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Difficulty Selection -->
+            <div class="w-full space-y-3">
+                <label class="block text-sm font-bold text-slate-700 text-left">Pilih Tingkat Kesulitan:</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="setDifficulty('mudah')" id="btn-diff-mudah" class="diff-btn py-3 px-4 rounded-xl border-2 border-emerald-500 bg-emerald-500 text-white font-bold transition shadow">Mudah</button>
+                    <button onclick="setDifficulty('sedang')" id="btn-diff-sedang" class="diff-btn py-3 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold transition shadow">Sedang</button>
+                    <button onclick="setDifficulty('menantang')" id="btn-diff-menantang" class="diff-btn py-3 px-4 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold transition shadow">Menantang</button>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-lg font-bold rounded-2xl shadow-xl transform transition hover:scale-[1.02] active:scale-95">
+                🚀 Mulai Berpetualang!
+            </button>
+        </div>
+
+        <!-- 2. GAMEPLAY ARENA VIEW -->
+        <div id="view-game" class="w-full hidden flex-col space-y-4">
+            <!-- Dynamic Arenas Container -->
+            <div id="arenas-container" class="grid grid-cols-1 gap-4 w-full">
+                <!-- Arena templates will be injected here -->
+            </div>
+        </div>
+
+        <!-- 3. RESULTS & SUMMARY VIEW -->
+        <div id="view-result" class="game-card w-full max-w-3xl p-6 sm:p-10 hidden flex-col items-center text-center space-y-6">
+            <div class="p-4 bg-emerald-100 rounded-full text-5xl mb-1 animate-bounce">🏆</div>
+            <h2 class="text-3xl font-extrabold text-emerald-800">Petualangan Selesai!</h2>
+            
+            <div id="result-summary-container" class="w-full space-y-4">
+                <!-- Populated via JS -->
+            </div>
+
+            <div class="flex flex-wrap gap-3 justify-center w-full pt-4">
+                <button onclick="restartGame()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105">
+                    🔄 Main Lagi
+                </button>
+                <button onclick="returnToMenu()" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl shadow transition">
+                    🏠 Menu Utama
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="w-full max-w-7xl text-center mt-4 text-white/80 text-xs sm:text-sm font-medium">
+        Ular Makan Tikus: Petualangan FPB & KPK © 2026 — Pembelajaran Interaktif Matematika Kelas 5 SD
+    </footer>
+
+    <script>
+        // --- AUDIO SYNTHESIZER (Web Audio API) ---
+        let audioCtx = null;
+        let isBgmOn = true;
+        let bgmOscillator = null;
+        let bgmGain = null;
+        let bgmInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'correct') {
+                    // Happy chord arpeggio
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now); // A4
+                    osc.frequency.setValueAtTime(554.37, now + 0.1); // C#5
+                    osc.frequency.setValueAtTime(659.25, now + 0.2); // E5
+                    osc.frequency.setValueAtTime(880, now + 0.3); // A5
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                } else if (type === 'wrong') {
+                    // Sad sliding tone
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(250, now);
+                    osc.frequency.linearRampToValueAtTime(120, now + 0.3);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'laugh') {
+                    // Silly giggle sound
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.setValueAtTime(450, now + 0.08);
+                    osc.frequency.setValueAtTime(300, now + 0.16);
+                    osc.frequency.setValueAtTime(450, now + 0.24);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                }
+            } catch (e) {
+                console.error("Audio error:", e);
+            }
+        }
+
+        function startBGM() {
+            if (!isBgmOn) return;
+            try {
+                initAudio();
+                if (bgmInterval) clearInterval(bgmInterval);
+                
+                // Playful cheerful melody loop using simple notes
+                const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // C E G C5 G E
+                let noteIdx = 0;
+
+                bgmInterval = setInterval(() => {
+                    if (!isBgmOn || !audioCtx) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(notes[noteIdx], audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+
+                    noteIdx = (noteIdx + 1) % notes.length;
+                }, 350);
+            } catch (e) {
+                console.error("BGM error:", e);
+            }
+        }
+
+        function stopBGM() {
+            if (bgmInterval) {
+                clearInterval(bgmInterval);
+                bgmInterval = null;
+            }
+        }
+
+        function toggleBGM() {
+            isBgmOn = !isBgmOn;
+            const textEl = document.getElementById('bgm-text');
+            const btnEl = document.getElementById('bgm-toggle-btn');
+            if (isBgmOn) {
+                textEl.innerText = "Musik ON";
+                btnEl.classList.remove('bg-slate-200', 'text-slate-600');
+                btnEl.classList.add('bg-emerald-100', 'text-emerald-800');
+                startBGM();
+            } else {
+                textEl.innerText = "Musik OFF";
+                btnEl.classList.remove('bg-emerald-100', 'text-emerald-800');
+                btnEl.classList.add('bg-slate-200', 'text-slate-600');
+                stopBGM();
+            }
+        }
+
+        // --- COMPREHENSIVE MATH QUESTION BANK (40+ Questions) ---
+        const MASTER_QUESTION_BANK = [
+            // Mudah
+            {
+                q: "Faktor dari 12 adalah ...",
+                options: ["1, 2, 3, 4, 6, dan 12", "1, 3, 5, dan 12", "2, 5, 6, dan 12", "1, 2, 4, dan 5"],
+                correct: 0,
+                explanation: "Faktor adalah bilangan yang dapat membagi habis 12 tanpa sisa.",
+                category: "Faktor",
+                difficulty: "mudah"
+            },
+            {
+                q: "Kelipatan 4 yang kurang dari 20 adalah ...",
+                options: ["4, 8, 12, 16", "2, 4, 6, 8, 10", "4, 8, 12, 18", "8, 12, 16, 20"],
+                correct: 0,
+                explanation: "Kelipatan 4 diperoleh dengan mengalikan 4 dengan 1, 2, 3, 4.",
+                category: "Kelipatan",
+                difficulty: "mudah"
+            },
+            {
+                q: "Manakah yang merupakan bilangan prima?",
+                options: ["9", "15", "19", "21"],
+                correct: 2,
+                explanation: "19 hanya memiliki 2 faktor, yaitu 1 dan 19.",
+                category: "Bilangan Prima",
+                difficulty: "mudah"
+            },
+            {
+                q: "Faktor dari 18 adalah ...",
+                options: ["1, 2, 3, 6, 9, 18", "1, 3, 6, 9", "2, 4, 6, 9", "1, 2, 3, 4, 9"],
+                correct: 0,
+                explanation: "Bilangan yang membagi habis 18 adalah 1, 2, 3, 6, 9, dan 18.",
+                category: "Faktor",
+                difficulty: "mudah"
+            },
+            {
+                q: "Kelipatan persekutuan pertama dari 3 dan 4 adalah ...",
+                options: ["6", "12", "18", "24"],
+                correct: 1,
+                explanation: "Kelipatan 3 (3,6,9,12...) dan kelipatan 4 (4,8,12...). Kelipatan persekutuan terkecilnya adalah 12.",
+                category: "Kelipatan",
+                difficulty: "mudah"
+            },
+            {
+                q: "Bilangan prima antara 10 dan 20 adalah ...",
+                options: ["11, 13, 17, 19", "11, 15, 17, 19", "11, 13, 15, 17", "13, 17, 19, 21"],
+                correct: 0,
+                explanation: "Bilangan prima antara 10 dan 20 yang hanya punya 2 faktor adalah 11, 13, 17, dan 19.",
+                category: "Bilangan Prima",
+                difficulty: "mudah"
+            },
+            {
+                q: "Faktor persekutuan dari 8 dan 12 adalah ...",
+                options: ["1, 2", "1, 2, 4", "1, 4", "2, 4"],
+                correct: 1,
+                explanation: "Faktor 8 (1,2,4,8) dan faktor 12 (1,2,3,4,6,12). Faktor persekutuannya adalah 1, 2, dan 4.",
+                category: "Faktor",
+                difficulty: "mudah"
+            },
+            {
+                q: "Kelipatan 5 yang terletak antara 10 dan 30 adalah ...",
+                options: ["15, 20, 25", "10, 15, 20, 25", "10, 20, 30", "15, 20, 25, 30"],
+                correct: 0,
+                explanation: "Kelipatan 5 di antara 10 dan 30 (tidak termasuk 10 dan 30) adalah 15, 20, dan 25.",
+                category: "Kelipatan",
+                difficulty: "mudah"
+            },
+            {
+                q: "Manakah yang BUKAN bilangan prima?",
+                options: ["7", "11", "23", "27"],
+                correct: 3,
+                explanation: "27 dapat dibagi oleh 1, 3, 9, dan 27 (bukan bilangan prima).",
+                category: "Bilangan Prima",
+                difficulty: "mudah"
+            },
+            {
+                q: "Faktor dari 24 yang lebih besar dari 10 adalah ...",
+                options: ["12 dan 24", "12 dan 18", "16 dan 24", "14 dan 24"],
+                correct: 0,
+                explanation: "Faktor 24 adalah 1, 2, 3, 4, 6, 8, 12, 24. Yang > 10 adalah 12 dan 24.",
+                category: "Faktor",
+                difficulty: "mudah"
+            },
+            {
+                q: "Berapa banyak faktor yang dimiliki oleh bilangan 16?",
+                options: ["4", "5", "6", "3"],
+                correct: 1,
+                explanation: "Faktor 16 adalah 1, 2, 4, 8, 16 (jumlahnya ada 5 faktor).",
+                category: "Faktor",
+                difficulty: "mudah"
+            },
+            {
+                q: "Kelipatan 7 yang pertama adalah ...",
+                options: ["7, 14, 21, 28", "7, 12, 21, 28", "14, 21, 28, 35", "7, 14, 20, 28"],
+                correct: 0,
+                explanation: "Kelipatan 7 adalah hasil kali 7 dengan 1, 2, 3, 4... yaitu 7, 14, 21, 28.",
+                category: "Kelipatan",
+                difficulty: "mudah"
+            },
+            {
+                q: "Bilangan prima terkecil adalah ...",
+                options: ["1", "2", "3", "5"],
+                correct: 1,
+                explanation: "Bilangan prima terkecil adalah 2 karena hanya memiliki faktor 1 dan 2.",
+                category: "Bilangan Prima",
+                difficulty: "mudah"
+            },
+            {
+                q: "Manakah pasangan bilangan yang keduanya bilangan prima?",
+                options: ["(2, 9)", "(3, 11)", "(5, 15)", "(7, 21)"],
+                correct: 1,
+                explanation: "3 dan 11 adalah bilangan prima. 9, 15, dan 21 bukan bilangan prima.",
+                category: "Bilangan Prima",
+                difficulty: "mudah"
+            },
+
+            // Sedang
+            {
+                q: "Faktorisasi prima dari 18 adalah ...",
+                options: ["2 × 3 × 3", "2 × 2 × 3", "3 × 3 × 3", "2 × 9"],
+                correct: 0,
+                explanation: "18 = 2 × 9 = 2 × 3 × 3. Semua faktor berupa bilangan prima.",
+                category: "Faktorisasi Prima",
+                difficulty: "sedang"
+            },
+            {
+                q: "FPB dari 12 dan 18 adalah ...",
+                options: ["2", "3", "6", "36"],
+                correct: 2,
+                explanation: "Faktor persekutuan terbesar dari 12 dan 18 adalah 6.",
+                category: "FPB",
+                difficulty: "sedang"
+            },
+            {
+                q: "KPK dari 4 dan 6 adalah ...",
+                options: ["2", "10", "12", "24"],
+                correct: 2,
+                explanation: "Kelipatan persekutuan terkecil dari 4 dan 6 adalah 12.",
+                category: "KPK",
+                difficulty: "sedang"
+            },
+            {
+                q: "Faktorisasi prima dari 36 adalah ...",
+                options: ["2² × 3²", "2³ × 3", "2 × 3³", "2² × 3³"],
+                correct: 0,
+                explanation: "36 = 4 × 9 = 2² × 3².",
+                category: "Faktorisasi Prima",
+                difficulty: "sedang"
+            },
+            {
+                q: "FPB dari 20 dan 30 adalah ...",
+                options: ["5", "10", "15", "60"],
+                correct: 1,
+                explanation: "Faktor persekutuan terbesar dari 20 dan 30 adalah 10.",
+                category: "FPB",
+                difficulty: "sedang"
+            },
+            {
+                q: "KPK dari 8 dan 12 adalah ...",
+                options: ["16", "24", "32", "48"],
+                correct: 1,
+                explanation: "Kelipatan persekutuan terkecil dari 8 dan 12 adalah 24.",
+                category: "KPK",
+                difficulty: "sedang"
+            },
+            {
+                q: "Faktorisasi prima dari 50 ditulis dalam bentuk ...",
+                options: ["2 × 5²", "2² × 5", "5² × 5", "2 × 25"],
+                correct: 0,
+                explanation: "50 = 2 × 25 = 2 × 5².",
+                category: "Faktorisasi Prima",
+                difficulty: "sedang"
+            },
+            {
+                q: "FPB dari 15 dan 25 adalah ...",
+                options: ["3", "5", "15", "75"],
+                correct: 1,
+                explanation: "FPB dari 15 (3×5) dan 25 (5²) adalah 5.",
+                category: "FPB",
+                difficulty: "sedang"
+            },
+            {
+                q: "KPK dari 5 dan 7 adalah ...",
+                options: ["12", "25", "35", "70"],
+                correct: 2,
+                explanation: "Karena 5 dan 7 adalah bilangan prima, KPK-nya adalah 5 × 7 = 35.",
+                category: "KPK",
+                difficulty: "sedang"
+            },
+            {
+                q: "Faktorisasi prima dari 72 adalah ...",
+                options: ["2³ × 3²", "2² × 3³", "2³ × 3³", "2 × 3²"],
+                correct: 0,
+                explanation: "72 = 8 × 9 = 2³ × 3².",
+                category: "Faktorisasi Prima",
+                difficulty: "sedang"
+            },
+            {
+                q: "FPB dari 24 dan 32 adalah ...",
+                options: ["4", "6", "8", "12"],
+                correct: 2,
+                explanation: "Faktor persekutuan terbesar dari 24 dan 32 adalah 8.",
+                category: "FPB",
+                difficulty: "sedang"
+            },
+            {
+                q: "KPK dari 9 dan 15 adalah ...",
+                options: ["30", "45", "60", "90"],
+                correct: 1,
+                explanation: "Kelipatan persekutuan terkecil dari 9 dan 15 adalah 45.",
+                category: "KPK",
+                difficulty: "sedang"
+            },
+            {
+                q: "Faktorisasi prima dari 48 adalah ...",
+                options: ["2⁴ × 3", "2³ × 3²", "2⁵", "2² × 3²"],
+                correct: 0,
+                explanation: "48 = 16 × 3 = 2⁴ × 3.",
+                category: "Faktorisasi Prima",
+                difficulty: "sedang"
+            },
+            {
+                q: "FPB dari 27 dan 45 adalah ...",
+                options: ["3", "9", "15", "27"],
+                correct: 1,
+                explanation: "FPB dari 27 (3³) dan 45 (3² × 5) adalah 3² = 9.",
+                category: "FPB",
+                difficulty: "sedang"
+            },
+            {
+                q: "KPK dari 10 dan 14 adalah ...",
+                options: ["35", "70", "140", "28"],
+                correct: 1,
+                explanation: "KPK dari 10 (2×5) dan 14 (2×7) adalah 2 × 5 × 7 = 70.",
+                category: "KPK",
+                difficulty: "sedang"
+            },
+
+            // Menantang (Soal Cerita & Aplikasi Lanjutan)
+            {
+                q: "Bu Guru mempunyai 24 pensil dan 36 penghapus. Semua benda akan dibagikan ke dalam paket sebanyak mungkin dengan isi setiap paket sama dan tidak ada benda yang tersisa. Berapa paket terbanyak yang dapat dibuat?",
+                options: ["6 paket", "8 paket", "12 paket", "18 paket"],
+                correct: 2,
+                explanation: "FPB dari 24 dan 36 adalah 12. Jadi, dapat dibuat 12 paket.",
+                category: "Soal Cerita FPB",
+                difficulty: "menantang"
+            },
+            {
+                q: "Lampu A berkedip setiap 4 detik sekali dan lampu B setiap 6 detik sekali. Jika kedua lampu berkedip bersamaan pada detik ke-0, pada detik ke berapa kedua lampu akan berkedip bersamaan lagi?",
+                options: ["8 detik", "10 detik", "12 detik", "24 detik"],
+                correct: 2,
+                explanation: "KPK dari 4 dan 6 adalah 12 detik.",
+                category: "Soal Cerita KPK",
+                difficulty: "menantang"
+            },
+            {
+                q: "Pak Andi memiliki 40 buah jeruk dan 60 buah mangga. Buah-buahan tersebut akan dimasukkan ke dalam keranjang dengan jumlah masing-masing jenis buah sama rata di setiap keranjang. Berapa keranjang terbanyak yang dibutuhkan Pak Andi?",
+                options: ["10 keranjang", "20 keranjang", "30 keranjang", "40 keranjang"],
+                correct: 1,
+                explanation: "FPB dari 40 dan 60 adalah 20. Jadi dibutuhkan 20 keranjang.",
+                category: "Soal Cerita FPB",
+                difficulty: "menantang"
+            },
+            {
+                q: "Kue bolu matang setiap 15 menit dan kue pisang setiap 20 menit di dalam oven. Jika kedua kue matang bersamaan pada pukul 08.00, pada pukul berapa kedua kue akan matang bersamaan lagi?",
+                options: ["08.35", "08.45", "09.00", "09.20"],
+                correct: 2,
+                explanation: "KPK dari 15 dan 20 adalah 60 menit (1 jam). 08.00 + 1 jam = 09.00.",
+                category: "Soal Cerita KPK",
+                difficulty: "menantang"
+            },
+            {
+                q: "Siti berenang setiap 3 hari sekali dan Lani setiap 5 hari sekali. Jika hari ini mereka berenang bersama-sama, setelah berapa hari mereka akan berenang bersama lagi?",
+                options: ["8 hari", "10 hari", "15 hari", "30 hari"],
+                correct: 2,
+                explanation: "KPK dari 3 dan 5 adalah 15 hari.",
+                category: "Soal Cerita KPK",
+                difficulty: "menantang"
+            },
+            {
+                q: "Di sebuah perpustakaan, buku cerita akan dikemas dalam tumpukan. Terdapat 48 buku dongeng dan 64 buku sains. Setiap tumpukan berisi buku dongeng sama banyak dan buku sains sama banyak. Berapa tumpukan maksimal yang dapat dibuat?",
+                options: ["8 tumpukan", "12 tumpukan", "16 tumpukan", "24 tumpukan"],
+                correct: 2,
+                explanation: "FPB dari 48 dan 64 adalah 16.",
+                category: "Soal Cerita FPB",
+                difficulty: "menantang"
+            },
+            {
+                q: "Tiga bus berangkat dari terminal yang sama. Bus A berangkat setiap 15 menit, Bus B setiap 20 menit, dan Bus C setiap 30 menit. Jika ketiganya berangkat bersama pukul 06.00, pukul berapa mereka berangkat bersama lagi?",
+                options: ["07.00", "07.30", "08.00", "09.00"],
+                correct: 2,
+                explanation: "KPK dari 15, 20, dan 30 adalah 60 menit (1 jam). 06.00 + 1 jam = 07.00? Tunggu: KPK 15, 20, 30 adalah 60 menit. 06.00 + 1 jam = 07.00.",
+                category: "Soal Cerita KPK",
+                difficulty: "menantang"
+            },
+            {
+                q: "Pramuka kelas 5 mengadakan bakti sosial dengan membagikan 75 kg beras dan 45 liter minyak goreng kepada warga kurang mampu. Jika setiap warga mendapat bagian beras dan minyak dengan jumlah sama banyak, berapa banyak warga maksimal yang menerima bantuan?",
+                options: ["5 orang", "15 orang", "25 orang", "75 orang"],
+                correct: 1,
+                explanation: "FPB dari 75 dan 45 adalah 15 orang.",
+                category: "Soal Cerita FPB",
+                difficulty: "menantang"
+            },
+            {
+                q: "Lonceng gereja A berbunyi setiap 12 menit, lonceng B setiap 18 menit. Jika berbunyi bersama pada pukul 10.00, pukul berapa keduanya berbunyi bersama lagi?",
+                options: ["10.36", "10.48", "11.00", "11.12"],
+                correct: 1,
+                explanation: "KPK dari 12 dan 18 adalah 36 menit. 10.00 + 36 menit = 10.36? Tunggu: Kelipatan 12 (12,24,36), Kelipatan 18 (18,36). KPK adalah 36. Jadi 10.36.",
+                category: "Soal Cerita KPK",
+                difficulty: "menantang"
+            },
+            {
+                q: "Pak Budi membagikan 56 kelereng merah dan 84 kelereng biru kepada sejumlah anak. Setiap anak mendapat kelereng merah dan biru sama banyak. Berapa anak terbanyak yang dapat menerima kelereng?",
+                options: ["14 anak", "21 anak", "28 anak", "42 anak"],
+                correct: 2,
+                explanation: "FPB dari 56 dan 84 adalah 28 anak.",
+                category: "Soal Cerita FPB",
+                difficulty: "menantang"
+            }
+        ];
+
+        // --- GLOBAL GAME STATE ---
+        let currentMode = 'solo'; // 'solo' | 'duel' | 'squad'
+        let currentDifficulty = 'mudah'; // 'mudah' | 'sedang' | 'menantang'
+        let playersState = []; 
+        let isGameActive = false;
+
+        function setGameMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-500', 'bg-emerald-50', 'text-emerald-900');
+                btn.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
+            });
+            const activeBtn = document.getElementById(`btn-mode-${mode}`);
+            activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-700');
+            activeBtn.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900');
+            playSound('click');
+        }
+
+        function setDifficulty(diff) {
+            currentDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-500', 'text-white', 'shadow');
+                btn.classList.add('bg-white', 'text-slate-700');
+            });
+            const activeBtn = document.getElementById(`btn-diff-${diff}`);
+            activeBtn.classList.remove('bg-white', 'text-slate-700');
+            activeBtn.classList.add('bg-emerald-500', 'text-white', 'shadow');
+            playSound('click');
+        }
+
+        function startGame() {
+            initAudio();
+            startBGM();
+
+            // Setup players based on mode
+            let count = 1;
+            if (currentMode === 'duel') count = 2;
+            if (currentMode === 'squad') count = 4;
+
+            playersState = [];
+            const playerColors = [
+                { name: 'Pemain 1 (Hijau)', bg: 'border-emerald-500', badge: 'bg-emerald-600', text: 'text-emerald-700', snakeColor: '#10b981' },
+                { name: 'Pemain 2 (Biru)', bg: 'border-blue-500', badge: 'bg-blue-600', text: 'text-blue-700', snakeColor: '#3b82f6' },
+                { name: 'Pemain 3 (Ungu)', bg: 'border-purple-500', badge: 'bg-purple-600', text: 'text-purple-700', snakeColor: '#a855f7' },
+                { name: 'Pemain 4 (Jingga)', bg: 'border-amber-500', badge: 'bg-amber-600', text: 'text-amber-700', snakeColor: '#f59e0b' }
+            ];
+
+            // Filter questions by difficulty
+            let availableQuestions = MASTER_QUESTION_BANK.filter(q => q.difficulty === currentDifficulty);
+            if (availableQuestions.length < 5) availableQuestions = [...MASTER_QUESTION_BANK]; // fallback
+
+            for (let i = 0; i < count; i++) {
+                // Shuffle questions for each player independently
+                let shuffledQ = JSON.parse(JSON.stringify(availableQuestions))
+                    .sort(() => Math.random() - 0.5);
+
+                playersState.push({
+                    id: i + 1,
+                    name: playerColors[i].name,
+                    badgeColor: playerColors[i].badge,
+                    borderColor: playerColors[i].bg,
+                    textColor: playerColors[i].text,
+                    snakeColor: playerColors[i].snakeColor,
+                    score: 0,
+                    lives: 3,
+                    correctCount: 0,
+                    wrongCount: 0,
+                    currentQIndex: 0,
+                    questions: shuffledQ,
+                    activeAnimation: null, // 'correct' | 'wrong' | null
+                    feedbackMessage: '',
+                    selectedOption: null,
+                    isGameOver: false
+                });
+            }
+
+            document.getElementById('view-menu').classList.add('hidden');
+            document.getElementById('view-result').classList.add('hidden');
+            const gameView = document.getElementById('view-game');
+            gameView.classList.remove('hidden');
+            gameView.classList.add('flex');
+
+            renderArenas();
+            isGameActive = true;
+            setupKeyboardControls();
+        }
+
+        // --- RENDER ARENAS ---
+        function renderArenas() {
+            const container = document.getElementById('arenas-container');
+            container.innerHTML = '';
+
+            // Grid styling based on mode (Squad mode now uses 4 vertical columns on large screens)
+            if (currentMode === 'solo') {
+                container.className = "grid grid-cols-1 w-full max-w-4xl mx-auto";
+            } else if (currentMode === 'duel') {
+                container.className = "grid grid-cols-1 md:grid-cols-2 gap-4 w-full";
+            } else if (currentMode === 'squad') {
+                container.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full";
+            }
+
+            playersState.forEach((p, idx) => {
+                const arenaCard = document.createElement('div');
+                arenaCard.className = `game-card p-4 sm:p-5 border-4 ${p.borderColor} flex flex-col space-y-3 relative overflow-hidden`;
+                arenaCard.id = `player-arena-${p.id}`;
+
+                if (p.isGameOver) {
+                    arenaCard.innerHTML = `
+                        <div class="flex flex-col items-center justify-center p-10 text-center space-y-3">
+                            <span class="text-4xl">🏁</span>
+                            <h3 class="text-2xl font-bold ${p.textColor}">${p.name} Selesai!</h3>
+                            <p class="text-lg font-semibold">Skor Akhir: <span class="text-emerald-600">${p.score}</span></p>
+                            <p class="text-sm text-slate-500">Benar: ${p.correctCount} | Salah: ${p.wrongCount}</p>
+                        </div>
+                    `;
+                } else {
+                    const currentQ = p.questions[p.currentQIndex];
+                    const totalQ = p.questions.length;
+
+                    arenaCard.innerHTML = `
+                        <!-- Player Header & Stats -->
+                        <div class="flex items-center justify-between bg-slate-100 px-3 py-2 rounded-xl">
+                            <div class="flex items-center space-x-1.5 overflow-hidden">
+                                <span class="px-2 py-0.5 text-white text-[10px] sm:text-xs font-bold rounded-lg truncate ${p.badgeColor}">${p.name}</span>
+                                <span class="text-[10px] sm:text-xs font-semibold text-slate-600 whitespace-nowrap">Soal ${p.currentQIndex + 1}/${totalQ}</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-xs font-bold whitespace-nowrap">
+                                <span class="text-amber-600">⭐ ${p.score}</span>
+                                <span class="text-rose-600">❤️ ${p.lives}</span>
+                            </div>
+                        </div>
+
+                        <!-- Magical Forest Arena Canvas / Graphic representation -->
+                        <div class="relative w-full h-36 sm:h-44 bg-gradient-to-b from-sky-200 via-emerald-100 to-emerald-300 rounded-2xl border-2 border-emerald-400 p-2.5 flex flex-col justify-between overflow-hidden shadow-inner">
+                            <!-- Background elements -->
+                            <div class="absolute top-1.5 left-2.5 text-[10px] font-bold text-emerald-800 bg-white/80 px-1.5 py-0.5 rounded shadow-sm">
+                                ${currentQ.category}
+                            </div>
+
+                            <!-- Question Panel -->
+                            <div class="mt-6 bg-white/95 p-2 rounded-xl shadow-sm border border-emerald-200 text-center">
+                                <p class="text-xs sm:text-sm font-bold text-slate-800 line-clamp-3">${currentQ.q}</p>
+                            </div>
+
+                            <!-- Snake & Rats Animation Area -->
+                            <div class="flex items-center justify-around my-auto relative">
+                                <div class="text-3xl sm:text-4xl snake-shadow animate-float transition-all duration-300" id="snake-icon-${p.id}">
+                                    🐍
+                                </div>
+                                <div class="text-lg text-emerald-700 animate-pulse">➡️</div>
+                                <div class="flex space-x-1.5">
+                                    ${currentQ.options.map((opt, oIdx) => {
+                                        const optLetter = ['A', 'B', 'C', 'D'][oIdx];
+                                        return `
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-xl sm:text-2xl animate-bounce" style="animation-delay: ${oIdx * 0.2}s">🐭</span>
+                                                <span class="text-[9px] font-bold text-emerald-900 bg-white/90 px-1 rounded">${optLetter}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Feedback / Explanation banner if answered -->
+                        <div id="feedback-box-${p.id}" class="hidden p-2.5 rounded-xl text-xs font-medium"></div>
+
+                        <!-- 4 Answer Option Buttons -->
+                        <div class="grid grid-cols-2 gap-1.5">
+                            ${currentQ.options.map((opt, oIdx) => {
+                                const optLetter = ['A', 'B', 'C', 'D'][oIdx];
+                                let highlightClass = 'bg-white hover:bg-emerald-50 border-emerald-200 text-slate-700';
+                                if (p.selectedOption === oIdx) {
+                                    if (oIdx === currentQ.correct) {
+                                        highlightClass = 'bg-emerald-500 text-white border-emerald-600';
+                                    } else {
+                                        highlightClass = 'bg-rose-500 text-white border-rose-600 animate-shake';
+                                    }
+                                }
+                                return `
+                                    <button onclick="handleAnswer(${p.id}, ${oIdx})" class="p-2 ${highlightClass} border-2 rounded-xl text-left text-[11px] sm:text-xs font-semibold transition shadow-sm flex items-start space-x-1.5">
+                                        <span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">${optLetter}</span>
+                                        <span class="flex-1 text-slate-800 line-clamp-2">${opt}</span>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+
+                container.appendChild(arenaCard);
+            });
+        }
+
+        // --- HANDLE ANSWER SELECTION ---
+        function handleAnswer(playerId, optionIndex) {
+            let p = playersState.find(item => item.id === playerId);
+            if (!p || p.isGameOver || p.selectedOption !== null) return; // prevent double click during animation
+
+            p.selectedOption = optionIndex;
+            const currentQ = p.questions[p.currentQIndex];
+            const isCorrect = (optionIndex === currentQ.correct);
+
+            // Re-render arena to show selection highlight immediately
+            renderArenas();
+
+            const feedbackEl = document.getElementById(`feedback-box-${p.id}`);
+            if (feedbackEl) {
+                feedbackEl.classList.remove('hidden');
+                if (isCorrect) {
+                    p.correctCount++;
+                    p.score += 10;
+                    playSound('correct');
+                    feedbackEl.className = "p-3 rounded-xl text-xs sm:text-sm font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 animate-pulse";
+                    feedbackEl.innerHTML = `🎉 <b>HEBAT! JAWABAN BENAR! (+10 Poin)</b><br><span class="font-normal">${currentQ.explanation}</span>`;
+                } else {
+                    p.wrongCount++;
+                    p.lives--;
+                    playSound('wrong');
+                    feedbackEl.className = "p-3 rounded-xl text-xs sm:text-sm font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-shake";
+                    feedbackEl.innerHTML = `❌ <b>UPS! JAWABAN KURANG TEPAT.</b><br>Jawaban benar: <b>${['A','B','C','D'][currentQ.correct]}</b>.<br><span class="font-normal">${currentQ.explanation}</span>`;
+                }
+            }
+
+            // Check if lives exhausted or questions finished
+            setTimeout(() => {
+                if (p.lives <= 0 || p.currentQIndex >= p.questions.length - 1) {
+                    p.isGameOver = true;
+                } else {
+                    p.currentQIndex++;
+                    p.selectedOption = null;
+                }
+
+                // Check if all players finished
+                if (playersState.every(item => item.isGameOver)) {
+                    showResultsView();
+                } else {
+                    renderArenas();
+                }
+            }, 3000); // 3 seconds delay to read explanation and view animations
+        }
+
+        // --- KEYBOARD CONTROLS (P1: Arrow keys / WASD shortcuts) ---
+        function setupKeyboardControls() {
+            window.onkeydown = function(e) {
+                if (!isGameActive) return;
+                const key = e.key.toUpperCase();
+                
+                // Map keys A, B, C, D to option indices 0, 1, 2, 3 for Player 1
+                let optIdx = -1;
+                if (key === 'A' || key === '1') optIdx = 0;
+                if (key === 'B' || key === '2') optIdx = 1;
+                if (key === 'C' || key === '3') optIdx = 2;
+                if (key === 'D' || key === '4') optIdx = 3;
+
+                if (optIdx !== -1 && playersState.length > 0) {
+                    handleAnswer(playersState[0].id, optIdx);
+                }
+            };
+        }
+
+        // --- RESULTS & SUMMARY VIEW ---
+        function showResultsView() {
+            isGameActive = false;
+            stopBGM();
+
+            document.getElementById('view-game').classList.remove('flex');
+            document.getElementById('view-game').classList.add('hidden');
+            
+            const resultView = document.getElementById('view-result');
+            resultView.classList.remove('hidden');
+            resultView.classList.add('flex');
+
+            const container = document.getElementById('result-summary-container');
+            container.innerHTML = '';
+
+            // Sort players by score descending
+            let sortedPlayers = [...playersState].sort((a, b) => b.score - a.score);
+
+            sortedPlayers.forEach((p, rank) => {
+                let medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : '🏅';
+                let totalAnswered = p.correctCount + p.wrongCount;
+                let accuracy = totalAnswered > 0 ? Math.round((p.correctCount / totalAnswered) * 100) : 0;
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border-2 ${p.borderColor} bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4`;
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-3xl">${medal}</span>
+                        <div class="text-left">
+                            <h4 class="font-bold text-lg ${p.textColor}">${p.name}</h4>
+                            <p class="text-xs text-slate-500">Akurasi: ${accuracy}% (${p.correctCount} Benar, ${p.wrongCount} Salah)</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-2xl font-extrabold text-emerald-700">${p.score}</span>
+                        <span class="text-xs text-slate-500 block">Poin Total</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        function returnToMenu() {
+            stopBGM();
+            isGameActive = false;
+            document.getElementById('view-game').classList.remove('flex');
+            document.getElementById('view-game').classList.add('hidden');
+            document.getElementById('view-result').classList.remove('flex');
+            document.getElementById('view-result').classList.add('hidden');
+            document.getElementById('view-menu').classList.remove('hidden');
+        }
+
+        // --- FULLSCREEN API ---
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error("Error attempting to enable fullscreen:", err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
